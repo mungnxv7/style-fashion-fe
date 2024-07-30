@@ -22,6 +22,27 @@ import { Checkbox } from 'antd';
 import type { GetProp } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 
+// Xem attribute có chứa values: [{ name: "" }] không, mục đích render table
+// Hàm kiểm tra
+const containsDefaultValues = (attributes) => {
+  const defaultValues = [{ name: "" }];
+
+  return attributes.some(attribute => {
+    return isEqual(attribute.values, defaultValues);
+  });
+};
+
+// Hàm so sánh đơn giản chỉ kiểm tra values
+const isEqual = (a, b) => {
+  if (a.length !== b.length) return false;
+
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].name !== b[i].name) return false;
+  }
+
+  return true;
+};
+
 // const attributes = [
 //   {
 //     name: "Size",
@@ -66,12 +87,18 @@ const AddProduct: React.FC = () => {
   const navigate = useNavigate();
   const [checkboxCategoriesList, setCheckboxCategoriesList] = useState<any[]>([]);
   const [attributes, setAttributes] = useState([
-    // { name: "", values: [{ name: "" }] }
+    { name: "", values: [{ name: "" }] }
   ]);
-  const [showPriceAndStock, setShowPriceAndStock] = useState(true);
+  // const [showPriceAndStock, setShowPriceAndStock] = useState(true);
   const [variants, setVariants] = useState([]);
   const [columns, setColumns] = useState([]);
   const [attributeImages, setAttributeImages] = useState({});
+
+  const [inputValues, setInputValues] = useState({
+    price: "",
+    discount: "",
+    stock: ""
+  });
 
 
   const [form] = Form.useForm();
@@ -385,6 +412,7 @@ const AddProduct: React.FC = () => {
       // console.log(newAttributes, 'newAttributes')
       // console.log(variants, 'variants')
 
+      console.log(variants, 'handleInputAttributeValueChange')
       return newAttributes;
     });
   };
@@ -424,6 +452,7 @@ const AddProduct: React.FC = () => {
   //   });
   // };
   const handleInputChange = (value, index, field) => {
+    // console.log(variants, 'handleInputChange')
     let updatedVariants; // Tạo biến để lưu trữ giá trị của newVariants
     // console.log(variants, 'variants')
 
@@ -435,7 +464,8 @@ const AddProduct: React.FC = () => {
       return newVariants;
     });
 
-    form.setFieldsValue({ variants: updatedVariants }); // Sử dụng updatedVariants để cập nhật form
+    // form.setFieldsValue({ variants: updatedVariants }); // Sử dụng updatedVariants để cập nhật form
+    console.log(variants, 'handleInputChange')
   };
 
   const handleImageChange = (e, index) => {
@@ -460,6 +490,54 @@ const AddProduct: React.FC = () => {
     })));
   };
 
+  const mergeVariants = (oldVariants, newVariants) => {
+    return newVariants.map(newVariant => {
+      const matchingOldVariant = oldVariants.find(oldVariant => {
+        if (!oldVariant.attributes || !newVariant.attributes) return false;
+
+        return oldVariant.attributes.every((attr, index) =>
+          attr === newVariant.attributes[index]
+        );
+      });
+
+      if (matchingOldVariant) {
+        return { ...newVariant, ...matchingOldVariant };
+      }
+
+      return newVariant;
+    });
+  };
+
+  const handleRemoveAttribute = (fieldIndex) => {
+    setAttributes(prevAttributes => {
+      const newAttributes = [...prevAttributes];
+      newAttributes.splice(fieldIndex, 1);
+      return newAttributes;
+    });
+
+    console.log(attributes, 'attributes-HandleremoveAttribute')
+  };
+
+  const handleRemoveAttributeValue = (fieldIndex, valueIndex) => {
+    setAttributes(prevAttributes => {
+      const newAttributes = prevAttributes.map((attribute, index) => {
+        if (index === fieldIndex) {
+          // Xóa phần tử cụ thể từ mảng values
+          const updatedValues = attribute.values.filter((_, idx) => idx !== valueIndex);
+          return { ...attribute, values: updatedValues };
+        }
+        return attribute;
+      });
+
+      // Cập nhật variants
+      const newVariants = createVariants(newAttributes); // Tạo lại variants từ attributes mới
+      const mergedVariants = mergeVariants(variants, newVariants); // Merge dữ liệu cũ và mới
+      setVariants(mergedVariants);
+
+      return newAttributes; // Trả về attributes mới để cập nhật state
+    });
+  };
+
   useEffect(() => {
     fetchCategoryes();
     // form.setFieldsValue({ fields: [{ name: "", price: "", stock: "", discount: "", image: "" }] });
@@ -467,15 +545,17 @@ const AddProduct: React.FC = () => {
 
   // Cập nhật variants và columns khi attributes thay đổi
   useEffect(() => {
-    if (attributes.length === 0) {
-      setShowPriceAndStock(true);
-    } else {
-      setShowPriceAndStock(false);
-      const newVariants = createVariants(attributes);
-      setVariants(newVariants);
-      const newColumns = createColumns(attributes);
-      setColumns(newColumns);
-    }
+    console.log(attributes, 'attributes-useeffect')
+    console.log(variants, 'before-useeffect')
+    const newVariants = createVariants(attributes);
+    console.log(newVariants, 'newVariants-useeffect')
+    const mergedVariants = mergeVariants(variants, newVariants);
+    console.log(mergedVariants, 'mergedVariants-useeffect')
+    setVariants(mergedVariants);
+    form.setFieldsValue({ variants: mergedVariants });
+    console.log(variants, 'after-useeffect')
+    const newColumns = createColumns(attributes);
+    setColumns(newColumns);
   }, [attributes]);
 
   // const onFieldsChange = (_, allFields) => {
@@ -635,9 +715,31 @@ const AddProduct: React.FC = () => {
     form.resetFields();
   };
 
+  // // Hàm để cập nhật giá trị input
+  // const handleInputChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setInputValues(prevValues => ({
+  //     ...prevValues,
+  //     [name]: value
+  //   }));
+  // };
+
+  // // Hàm để cập nhật tất cả variants với giá trị input
+  // const handleApplyToAll = () => {
+  //   setVariants(prevVariants => {
+  //     const updatedVariants = prevVariants.map(variant => ({
+  //       ...variant,
+  //       price: inputValues.price,
+  //       discount: inputValues.discount,
+  //       stock: inputValues.stock
+  //     }));
+  //     return updatedVariants;
+  //   });
+  // };
+
 
   return (
-    <div className="w-full mx-auto px-5 pb-5">
+    <div className="w-full mx-auto px-5 pb-20">
       <h3 className=" text-2xl text-slate-700 text-center mt-6 mb-3">
         Thêm mới
       </h3>
@@ -756,7 +858,7 @@ const AddProduct: React.FC = () => {
             </div>
           </div>
 
-          {showPriceAndStock && (
+          {/* {showPriceAndStock && (
             <div>
               <Form.Item
                 name="price"
@@ -773,7 +875,7 @@ const AddProduct: React.FC = () => {
                 <Input placeholder="Kho hàng" />
               </Form.Item>
             </div>
-          )}
+          )} */}
 
           <div className="">
             <Form.List
@@ -787,21 +889,23 @@ const AddProduct: React.FC = () => {
                   {fields.map((field, fieldIndex) => (
                     <div key={field.key} className="mb-10 bg-slate-50 p-5">
                       <div className="w-[600px]">
-                        {fields.length > 0 && (
+                        {fields.length > 1 && (
                           <Button
                             className="dynamic-delete-button bg-red-800 text-white my-4"
                             onClick={() => {
                               // console.log(fields, 'fields')
-
+                              // console.log(field.name, 'field.name')
                               remove(field.name);
-                              // console.log(fields, 'fields')
-                              if (fields.length === 1) {
-                                setShowPriceAndStock(true);
-                              }
+                              console.log(field.name, 'field.name')
+                              console.log(fieldIndex, 'fieldIndex')
+                              handleRemoveAttribute(fieldIndex); // Hàm mới để xử lý xóa thuộc tính
+                              console.log(variants, 'variants-deleteAttribute')
+                              console.log(attributes, 'attribute-deleteAttribute')
+
                             }}
                             icon={<MinusCircleOutlined />}
                           >
-                            Xóa thuộc tính
+                            Xóa phân loại hàng
                           </Button>
                         )}
                         <div className="flex gap-4 mt-4">
@@ -824,7 +928,13 @@ const AddProduct: React.FC = () => {
                           <div className="flex gap-4 mt-5">
                             <div className="flex flex-col w-[130px]">
                               <label className="text-[16px] font-normal" htmlFor="">Phân loại hàng</label>
-                              <Button className="mt-2" type="dashed" onClick={() => addValue()} icon={<PlusOutlined />}>
+                              <Button className="mt-2" type="dashed" onClick={() => {
+                                console.log(variants, 'addValue')
+
+                                addValue()
+                              }
+                              }
+                                icon={<PlusOutlined />}>
                                 Thêm
                               </Button>
                             </div>
@@ -838,20 +948,30 @@ const AddProduct: React.FC = () => {
                                   >
                                     <Input
                                       placeholder={`Giá trị ${valueIndex + 1}`}
-                                      onChange={(e) => handleInputAttributeValueChange(e.target.value, fieldIndex, valueIndex, "name")}
+                                      onChange={(e) => {
+                                        console.log(valueField.name, 'valueField.name')
+                                        handleInputAttributeValueChange(e.target.value, fieldIndex, valueIndex, "name")
+                                      }}
                                     />
                                   </Form.Item>
+
                                   <div className="">
-                                    <Button
-                                      className="dynamic-delete-button bg-red-500 text-white"
-                                      onClick={() => {
-                                        removeValue(valueField.name);
-                                        handleInputAttributeValueChange("", fieldIndex, valueIndex, "name"); // Cập nhật attributes khi xóa
-                                      }}
-                                      icon={<MinusCircleOutlined />}
-                                    >
-                                      Xóa
-                                    </Button>
+                                    {
+                                      valueFields.length > 1 &&
+                                      <Button
+                                        className="dynamic-delete-button bg-red-500 text-white"
+                                        onClick={() => {
+
+                                          removeValue(valueField.name);
+                                          handleInputAttributeValueChange("", fieldIndex, valueIndex, "name"); // Cập nhật attributes khi xóa
+                                          handleRemoveAttributeValue(fieldIndex, valueIndex); // Hàm mới để xử lý xóa giá trị thuộc tính
+                                          console.log(variants, 'deleteValue')
+                                        }}
+                                        icon={<MinusCircleOutlined />}
+                                      >
+                                        Xóa
+                                      </Button>
+                                    }
                                   </div>
                                 </div>
                               ))}
@@ -863,8 +983,10 @@ const AddProduct: React.FC = () => {
                   ))}
                   <Button className="mb-4" type="dashed" onClick={() => {
                     add({ name: '', values: [] });
+                    console.log(variants, 'addAttribute')
+
                     // console.log(fields, 'fields')
-                    setShowPriceAndStock(false)
+                    // setShowPriceAndStock(false)
                   }} icon={<PlusOutlined />}>
                     Thêm phân loại hàng
                   </Button>
@@ -874,15 +996,9 @@ const AddProduct: React.FC = () => {
           </div>
 
 
-          <Table
-            className="custom-table"
-            columns={createColumns(attributes)}
-            dataSource={variants}
-            pagination={false}
-            rowKey={(record, index) => index}
-          />
 
-          <Form.Item>
+
+          <Form.Item className="absolute bottom-0">
             <Space>
               <Button
                 type="primary"
@@ -898,6 +1014,25 @@ const AddProduct: React.FC = () => {
           </Form.Item>
         </div>
       </Form>
+
+      {
+        containsDefaultValues(attributes) ? null :
+          <div>
+            <div className="w-full flex gap-1 mb-2">
+              <input className="flex-1 p-2 border-[1px] h-10" type="number" placeholder="Giá gốc" />
+              <input className="flex-1 p-2 border-[1px] h-10" type="text" placeholder="Giá khuyễn mãi" />
+              <input className="flex-1 p-2 border-[1px] h-10" type="text" placeholder="Kho hàng" />
+              <button className="flex-1 p-2 w-12 h-10 bg-yellow-400 text-white">Áp dụng cho tất cả phân loại</button>
+            </div>
+            <Table
+              className="custom-table"
+              columns={createColumns(attributes)}
+              dataSource={variants}
+              pagination={false}
+              rowKey={(record, index) => index}
+            />
+          </div>
+      }
 
     </div>
   );
