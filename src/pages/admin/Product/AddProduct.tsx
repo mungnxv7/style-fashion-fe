@@ -21,6 +21,7 @@ import TextArea from "antd/es/input/TextArea";
 import { Checkbox } from 'antd';
 import type { GetProp } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import axios from "axios";
 
 // Xem attribute có chứa values: [{ name: "" }] không, mục đích render table
 // Hàm kiểm tra
@@ -177,7 +178,10 @@ const AddProduct: React.FC = () => {
         render: (text, _, index) => {
           const attributeValue = variants[index]?.attributes ? variants[index].attributes[0] : null;
           const rowSpan = attributes[1]?.values.length || 1;
-          const attrValueIndex = index % rowSpan;
+          // const attrValueIndex = index % rowSpan;
+          // Calculate the correct attribute value index
+          const attrValueIndex = Math.floor(index / (attributes[1]?.values.length || 1));
+          const currentValue = attributes[0]?.values[attrValueIndex] || {};
 
           return {
             children: (
@@ -198,6 +202,8 @@ const AddProduct: React.FC = () => {
                     onChange={({ fileList }) => handleUploadImageAttributeChange(fileList, attrValueIndex)}
                     listType="picture"
                     beforeUpload={() => false}
+                    maxCount={1}
+                  // defaultFileList={currentValue.image ? [{ thumbUrl: currentValue.image }] : []}
                   >
                     <Button icon={<UploadOutlined />}>Tải lên</Button>
                   </Upload>
@@ -400,12 +406,25 @@ const AddProduct: React.FC = () => {
   };
 
   const handleUploadImageAttributeChange = (fileList, attrValueIndex) => {
+    console.log(attrValueIndex, 'attrValueIndex')
     setAttributeImages(prevImages => ({
       ...prevImages,
       [attrValueIndex]: fileList,
     }));
   };
 
+  // const handleUploadImageAttributeChange = (fileList, attrValueIndex) => {
+  //   setAttributes(prevAttributes => {
+  //     const newAttributes = [...prevAttributes];
+  //     const attribute0 = newAttributes[0];
+
+  //     if (attribute0 && attribute0.values[attrValueIndex]) {
+  //       attribute0.values[attrValueIndex].image = fileList.length > 0 ? fileList[0].thumbUrl : '';
+  //     }
+
+  //     return newAttributes;
+  //   });
+  // };
 
   const fetchCategoryes = async () => {
     const { data } = await https.get("/categories");
@@ -512,7 +531,9 @@ const AddProduct: React.FC = () => {
 
   const onFinish = (values: any) => {
     console.log('Form values:', values);
+    console.log('attribute image', attributeImages);
     // console.log(attributeImages, 'attributeImages')
+    let convertVariant = [];
     if (variants) {
       console.log(variants, 'variants')
       const convertDataToDesiredFormat = (data, attributes) => {
@@ -533,63 +554,64 @@ const AddProduct: React.FC = () => {
       };
 
       const convertedData = convertDataToDesiredFormat(variants, attributes);
-      console.log('Converted data:', convertedData);
+      convertVariant = convertedData;
+      console.log('Converted data:', convertVariant);
 
     }
 
-    return
-    const formValues = {
-      ...values,
-      variants: variants.map((variant, index) => ({
-        ...variant,
-        tier_index: [variant.tier_index[0], variant.tier_index[1]]
-      }))
-    };
-    console.log('Form values:', formValues);
+    // return
+    // const formValues = {
+    //   ...values,
+    //   variants: variants.map((variant, index) => ({
+    //     ...variant,
+    //     tier_index: [variant.tier_index[0], variant.tier_index[1]]
+    //   }))
+    // };
+    // console.log('Form values:', formValues);
 
 
-    const formattedVariants = variants.map(({ tier_index, currentPrice, originalPrice, stock }) => ({
-      tier_index,
-      currentPrice,
-      originalPrice,
-      stock,
-    }));
-    console.log("Formatted Submit values:", { variants: formattedVariants });
+    // const formattedVariants = variants.map(({ tier_index, currentPrice, originalPrice, stock }) => ({
+    //   tier_index,
+    //   currentPrice,
+    //   originalPrice,
+    //   stock,
+    // }));
+    // console.log("Formatted Submit values:", { variants: formattedVariants });
 
 
-    const body = {
-      ...values,
-      variants: formattedVariants,
-    }
+    // const body = {
+    //   ...values,
+    //   variants: formattedVariants,
+    // }
 
-    console.log('Body:', body);
-    return
+    // console.log('Body:', body);
+    // return
     const postProduct = async () => {
       showSpinner();
-      const attributeData: any = [];
-      let formDataAttributeImage = new FormData();
+      // const attributeData: any = [];
+      // let formDataAttributeImage = new FormData();
       // console.log(values.fields, 'values.fields')
       // return;
-      for (const field of values.fields) {
-        const image = field.image[0].originFileObj;
-        formDataAttributeImage.append("images", image);
-        try {
-          const { data: dataAttributeImage } = await https.post("/images", formDataAttributeImage);
-          const urlAttributeImage: { url: string; publicId: string }[] = dataAttributeImage.data;
-          const attribute = {
-            name: field.name,
-            price: field.price,
-            stock: field.stock,
-            discount: field.discount,
-            image: urlAttributeImage[0].url,
-          };
-          attributeData.push(attribute);
-          formDataAttributeImage = new FormData();
-        } catch (error) {
-          console.log(error);
-          message.error(error.response.data.message);
-        }
-      }
+      // for (const field of values.fields) {
+      //   const image = field.image[0].originFileObj;
+      //   formDataAttributeImage.append("images", image);
+      //   try {
+      //     const { data: dataAttributeImage } = await https.post("/images", formDataAttributeImage);
+      //     const urlAttributeImage: { url: string; publicId: string }[] = dataAttributeImage.data;
+      //     const attribute = {
+      //       name: field.name,
+      //       price: field.price,
+      //       stock: field.stock,
+      //       discount: field.discount,
+      //       image: urlAttributeImage[0].url,
+      //     };
+      //     attributeData.push(attribute);
+      //     formDataAttributeImage = new FormData();
+      //   } catch (error) {
+      //     console.log(error);
+      //     message.error(error.response.data.message);
+      //   }
+      // }
 
       // console.log(values, 'values');
       // console.log(attributeData, 'attributeData');
@@ -597,25 +619,52 @@ const AddProduct: React.FC = () => {
       // return;
 
       const listFiles = values.gallery;
+      // Chuyển object gồm các mảng sang mảng gồm các object
+      const listFilesAttributeImage = Object.values(attributeImages).flat();
       const thumbnail: any = values.thumbnail;
 
-
+      // Lấy originFileObj
       const newArrayFiles = listFiles.map((file: any) => file.originFileObj);
+      const fileOriginAttributeImages = listFilesAttributeImage.map((file: any) => file.originFileObj);
       const thumbnailFile = thumbnail[0].originFileObj;
 
       const formData = new FormData();
       for (const file of newArrayFiles) {
         formData.append("images", file);
       }
-
+      const formDataAttributeImage = new FormData();
+      for (const file of fileOriginAttributeImages) {
+        formDataAttributeImage.append("images", file);
+      }
       const formDataThumbnail = new FormData();
       formDataThumbnail.append("images", thumbnailFile);
+
       try {
         const { data: dataGallery } = await https.post("/images", formData);
         const urlGallery: { url: string; publicId: string }[] = dataGallery.data;
 
+        const { data: dataAttributeImage } = await https.post("/images", formDataAttributeImage);
+        const urlAttributeImage: { url: string; publicId: string }[] = dataAttributeImage.data;
+
         const { data: dataThumbnail } = await https.post("/images", formDataThumbnail);
         const urlThumbnail: { url: string; publicId: string }[] = dataThumbnail.data;
+
+        console.log(urlGallery, 'urlGallery');
+        console.log(urlAttributeImage, 'urlAttributeImage');
+        console.log(urlThumbnail, 'urlThumbnail');
+
+        const attributeData = values.attributes
+
+        attributeData[0].values = attributeData[0].values.map((value, index) => {
+          if (urlAttributeImage[index]) {
+            return { ...value, image: urlAttributeImage[index].url };
+          }
+          return value; // Trả về giá trị ban đầu nếu không có ảnh tương ứng
+        });
+
+        console.log(attributeData, 'atrtibuteData');
+
+        // return;
 
         const data = {
           name: values.name,
@@ -624,8 +673,15 @@ const AddProduct: React.FC = () => {
           thumbnail: urlThumbnail[0].url,
           categories: values.categories,
           attributes: attributeData,
-          video: "",
+          shortDescription: "product shortDescription",
+          video: "video.mp4",
+          featured: true,
+          variants: convertVariant
         };
+
+        console.log(data, 'dataFinal');
+
+        // return;
 
         const res = await https.post("/products", data);
         if (res) {
