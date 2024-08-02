@@ -267,24 +267,3 @@ body .ant-modal-mask {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
-.custom-table td {
-  border-right: 1px solid #f0f0f0;
-  border-left: 1px solid #f0f0f0;
-  /* Thêm viền bên trái */
-}
-
-.custom-table th {
-  border-right: 1px solid #f0f0f0;
-  border-left: 1px solid #f0f0f0;
-  /* Thêm viền bên trái */
-}
-
-.custom-table tr:last-child td {
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.custom-table tr:first-child th:first-child {
-  border-left: 1px solid #f0f0f0;
-  /* Thêm viền bên trái cho ô tiêu đề đầu tiên */
-}

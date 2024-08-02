@@ -1040,10 +1040,11 @@ const AddProduct: React.FC = () => {
                   </button>
                 </div>
                 <Table
-                  className="custom-table"
+                  // className="custom-table"
                   columns={createColumns(attributes)}
                   dataSource={variants}
                   pagination={false}
+                  bordered
                   rowKey={(record, index) => index}
                 />
               </div>
