@@ -98,9 +98,9 @@ const AddProduct: React.FC = () => {
     const [attributeImages, setAttributeImages] = useState({});
     const [product, setProduct] = useState<any>({}); // product detail
     const [originalVariants, setOriginalVariants] = useState([]);
-    // const [isInputChanged, setIsInputChanged] = useState(false);
+    const [isInputChanged, setIsInputChanged] = useState(false);
 
-    let isInputChanged = false;
+    // let isInputChanged = false;
 
     const [form] = Form.useForm();
 
@@ -373,7 +373,7 @@ const AddProduct: React.FC = () => {
     };
 
     const handleInputAttributeNameChange = (value, index) => {
-        isInputChanged = true;
+        setIsInputChanged(true);
         setAttributes(prevAttributes => {
             const newAttributes = [...prevAttributes];
             // Kiểm tra và đảm bảo rằng newAttributes[index] tồn tại và là một đối tượng
@@ -393,7 +393,7 @@ const AddProduct: React.FC = () => {
 
     const handleInputAttributeValueChange = (value, fieldIndex, valueIndex, field) => {
         // console.log(value, fieldIndex, valueIndex, field)
-        isInputChanged = true;
+        setIsInputChanged(true);
         setAttributes(prevAttributes => {
             const newAttributes = [...prevAttributes];
 
@@ -430,7 +430,7 @@ const AddProduct: React.FC = () => {
     };
 
     const handleInputChange = (value, index, field) => {
-        isInputChanged = true;
+        setIsInputChanged(true);
         // console.log(variants, 'handleInputChange')
         let updatedVariants; // Tạo biến để lưu trữ giá trị của newVariants
         // console.log(variants, 'variants')
